@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Main",
+            "request": "launch",
+            "vmArgs": "--module-path ${workspaceFolder}/lib/javafx-sdk-17.0.1/lib --add-modules javafx.controls,javafx.fxml",
+            "mainClass": "Main", //C:/Program Files/Java/javafx-sdk-17.0.1/lib
+            // "cwd": "${workspaceFolder}/bin"
+        }
+        // ,
+        // {
+        //     "type": "java",
+        //     "name": "Debug (Launch) - Current File",
+        //     "request": "launch",
+        //     "vmArgs": "--module-path C:/Program Files/Java/javafx-sdk-17.0.1/lib --add-modules javafx.controls,javafx.fxml",
+        //     "mainClass": "${file}",
+        //     "cwd": "${workspaceFolder}/bin"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Debug (Launch)-Main<classic_cars_db_app_ff4d0912>",
+        //     "request": "launch",
+        //     "vmArgs": "--module-path C:/Program Files/Java/javafx-sdk-17.0.1/lib --add-modules javafx.controls,javafx.fxml",
+        //     "mainClass": "Main",
+        //     "projectName": "classic_cars_db_app_ff4d0912",
+        //     "cwd": "${workspaceFolder}/bin"
+        // }
+    ]
+}
