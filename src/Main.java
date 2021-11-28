@@ -1,33 +1,19 @@
+import databasemanager.Manager;
 import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import ui.HomeScreen;
 
 public class Main extends Application {
+    private String DB_URL = "jdbc:mysql://localhost:3306/abd_al-muttalib_201904158";
+    private String USERNAME = "root";
+    private String PASSWORD = "";
 
     @Override
-    public void start(Stage primaryStage) {
-        Button btn = new Button();
-        btn.setText("Say 'Hello World'");
-        btn.setOnAction(new EventHandler<ActionEvent>() {
+    public void start(Stage stg) {
+        Manager mgr = new Manager(DB_URL, USERNAME, PASSWORD);
 
-            @Override
-            public void handle(ActionEvent event) {
-                System.out.println("Hello World!");
-            }
-        });
-
-        StackPane root = new StackPane();
-        root.getChildren().add(btn);
-
-        Scene scene = new Scene(root, 300, 250);
-
-        primaryStage.setTitle("Hello World!");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        stg = new HomeScreen(stg, "Classic Car Manager", true, mgr).getStage();
+        stg.show();
     }
 
     public static void main(String[] args) {
