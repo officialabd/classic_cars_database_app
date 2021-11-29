@@ -6,15 +6,27 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+import javafx.collections.ObservableList;
+import javafx.scene.control.CheckBox;
 import schema.Schema;
 import schema.attribute.Attribute;
 
 public class Manager {
+
     private final String DB_URL;
     private final String USERNAME;
     private final String PASSWORD;
     private Connection connection;
     private ArrayList<Schema> tables_schemas;
+
+    private static final String CHAR = "CHAR";
+    private static final String VARCHAR = "VARCHAR";
+    private static final String INT = "INT";
+    private static final String INTEGER = "INTEGER";
+    private static final String FLOAT = "FLOAT";
+    private static final String DOUBLE = "DOUBLE";
+    private static final String DECIMAL = "DECIMAL";
+    private static final String[] OPERATORS = { "<", ">", ">=", "<=", "!=" };
 
     public Manager(String db_url, String username, String password) {
         this.DB_URL = db_url;
@@ -80,6 +92,76 @@ public class Manager {
         }
         close_connection();
         return null;
+    }
+
+    public ResultSet search_this(String table_name, ArrayList<SearchItem> query_ps, boolean select_all) {
+        ResultSet rs = null;
+        String query = "SELECT *";
+        String conditions = parse_conditions(table_name, query_ps);
+        query += " FROM " + table_name + " WHERE " + conditions + ";";
+        rs = execute_this(query);
+        return rs;
+    }
+
+    public ResultSet search_this(String table_name, ArrayList<SearchItem> query_ps,
+            ObservableList<CheckBox> selected_attrs) {
+        ResultSet rs = null;
+        String query = "SELECT ";
+        boolean first_attr = true;
+        for (CheckBox cb : selected_attrs) {
+            if (cb.isSelected()) {
+                if (!first_attr) {
+                    query += ", ";
+                }
+                query += cb.getText();
+                first_attr = false;
+            }
+        }
+        String conditions = parse_conditions(table_name, query_ps);
+        query += " FROM " + table_name + " WHERE " + conditions + ";";
+        System.out.println("----------------------> " + query);
+        System.out.println("");
+        rs = execute_this(query);
+        return rs;
+    }
+
+    private String parse_conditions(String table_name, ArrayList<SearchItem> query_ps) {
+        String conditions = "";
+
+        for (SearchItem item : query_ps) {
+            if (conditions.length() != 0)
+                conditions += " AND ";
+            conditions += parse_search_item(table_name, item);
+        }
+        System.out.println(conditions);
+        return conditions;
+    }
+
+    private String parse_search_item(String table_name, SearchItem item) {
+        String re = "NULL";
+        if (item.getType().toLowerCase().contains(CHAR.toLowerCase())
+                || item.getType().toLowerCase().contains(VARCHAR.toLowerCase())) {
+            re = table_name + "." + item.getATTRIBUTE_NAME() + " LIKE '%" + item.getVALUE() + "%'";
+        } else if (item.getType().toLowerCase().contains(INT.toLowerCase())
+                || item.getType().toLowerCase().contains(INTEGER.toLowerCase())
+                || item.getType().toLowerCase().contains(FLOAT.toLowerCase()) ||
+                item.getType().toLowerCase().contains(DOUBLE.toLowerCase())
+                || item.getType().toLowerCase().contains(DECIMAL.toLowerCase())) {
+            if (does_it_contains_ops(item.getVALUE())) {
+                re = table_name + "." + item.getATTRIBUTE_NAME() + " " + item.getVALUE();
+            } else {
+                re = table_name + "." + item.getATTRIBUTE_NAME() + " = " + item.getVALUE();
+            }
+        }
+        return re;
+    }
+
+    private boolean does_it_contains_ops(String value) {
+        for (int i = 0; i < OPERATORS.length; i++) {
+            if (value.contains(OPERATORS[i]))
+                return true;
+        }
+        return false;
     }
 
     private void open_connection() {
