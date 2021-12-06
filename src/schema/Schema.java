@@ -49,10 +49,16 @@ public class Schema {
         return ATTRIBUTE_NUMBER;
     }
 
+    // @Override
+    // public String toString() {
+    // return "Schema [attributes=" + attributes + ", foreignKeys=" + foreignKeys +
+    // ", primaryKeys=" + primaryKeys
+    // + ", tableName=" + tableName + "]";
+    // }
+
     @Override
     public String toString() {
-        return "Schema [attributes=" + attributes + ", foreignKeys=" + foreignKeys + ", primaryKeys=" + primaryKeys
-                + ", tableName=" + tableName + "]";
+        return getTableName();
     }
 
 }

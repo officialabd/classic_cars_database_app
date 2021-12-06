@@ -1,11 +1,11 @@
 package databasemanager;
 
-public class SearchItem {
+public class Item {
     private final String ATTRIBUTE_NAME;
     private final String VALUE;
     private final String TYPE;
 
-    public SearchItem(String attribute_name, String value, String type) {
+    public Item(String attribute_name, String value, String type) {
         this.ATTRIBUTE_NAME = attribute_name;
         this.VALUE = value;
         this.TYPE = type;

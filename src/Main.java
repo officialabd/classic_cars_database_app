@@ -12,7 +12,7 @@ public class Main extends Application {
     public void start(Stage stg) {
         Manager mgr = new Manager(DB_URL, USERNAME, PASSWORD);
 
-        stg = new HomeScreen(stg, "Classic Car Manager", true, mgr).getStage();
+        stg = new HomeScreen(stg, "Classic Car Manager", HomeScreen.FULL_SCREEN, mgr).getStage();
         stg.show();
     }
 
