@@ -129,44 +129,6 @@ public class Manager {
         }
     }
 
-    public ResultSet execute_this(String query) {
-        open_connection();
-        try {
-            Statement stm = connection.createStatement();
-            ResultSet rs = stm.executeQuery(query);
-            return rs;
-        } catch (Exception e) {
-            HomeScreen.print_to_console("Incorrect input! Retrieving data incomplete.");
-        }
-        close_connection();
-        return null;
-    }
-
-    public ResultSet execute_p_this(String query) {
-        open_connection();
-        try {
-            PreparedStatement pstm = connection.prepareStatement(query);
-            ResultSet rs = pstm.executeQuery();
-            return rs;
-        } catch (Exception e) {
-            HomeScreen.print_to_console("Incorrect input! Retrieving data incomplete.");
-        }
-        close_connection();
-        return null;
-    }
-
-    public int update_this(String query) {
-        open_connection();
-        try {
-            Statement stm = connection.createStatement();
-            return stm.executeUpdate(query);
-        } catch (Exception e) {
-            HomeScreen.print_to_console("Update incomplete!");
-        }
-        close_connection();
-        return -1;
-    }
-
     public ResultSet search_this(String table_name, ArrayList<Item> query_ps, boolean select_all) {
         ResultSet rs = null;
         String query = "SELECT *";
@@ -201,6 +163,17 @@ public class Manager {
         return rs;
     }
 
+    private String parse_conditions(String table_name, ArrayList<Item> query_ps) {
+        String conditions = "";
+
+        for (Item item : query_ps) {
+            if (conditions.length() != 0)
+                conditions += " AND ";
+            conditions += parse_search_item(table_name, item);
+        }
+        return conditions;
+    }
+
     public String insert_into_db(Schema table, ArrayList<Item> items) {
         String query = "INSERT INTO " + table.getTableName();
         String columns_names = "";
@@ -211,6 +184,9 @@ public class Manager {
             for (Item item : items) {
                 if (attribute.getName().equals(item.getATTRIBUTE_NAME())) {
                     if (item.getType() != "EMPTY") {
+                        if (attribute.isItPrimaryKey()) {
+
+                        }
                         temp = true;
                         if (columns_names.length() > 0)
                             columns_names += ", ";
@@ -261,20 +237,9 @@ public class Manager {
         query += " (" + columns_names + ") VALUES (" + values + ");";
 
         if (update_this(query) == -1) {
-            return "Insertion incomplete!";
+            return "Insertion failed!";
         }
         return "Insertion completed into table \"" + table.getTableName() + "\"!";
-    }
-
-    private String parse_conditions(String table_name, ArrayList<Item> query_ps) {
-        String conditions = "";
-
-        for (Item item : query_ps) {
-            if (conditions.length() != 0)
-                conditions += " AND ";
-            conditions += parse_search_item(table_name, item);
-        }
-        return conditions;
     }
 
     private String parse_search_item(String table_name, Item item) {
@@ -286,6 +251,22 @@ public class Manager {
                 re = table_name + "." + item.getATTRIBUTE_NAME() + " " + item.getVALUE();
             } else {
                 re = table_name + "." + item.getATTRIBUTE_NAME() + " = " + item.getVALUE();
+            }
+        } else if (check_if_this_is_date_type(item.getType())) {
+            if (does_it_contains_ops(item.getVALUE())) {
+                String temp = "";
+                boolean opened = false;
+                for (int i = 0; i < item.getVALUE().length(); i++) {
+                    if (item.getVALUE().charAt(i) >= '0' && item.getVALUE().charAt(i) <= '9' && !opened) {
+                        opened = true;
+                        temp += "'";
+                    }
+                    temp += item.getVALUE().charAt(i);
+                }
+                temp += "'";
+                re = table_name + "." + item.getATTRIBUTE_NAME() + " " + temp;
+            } else {
+                re = table_name + "." + item.getATTRIBUTE_NAME() + " = '" + item.getVALUE() + "'";
             }
         }
         return re;
@@ -324,6 +305,44 @@ public class Manager {
                 return true;
         }
         return false;
+    }
+
+    public ResultSet execute_this(String query) {
+        open_connection();
+        try {
+            Statement stm = connection.createStatement();
+            ResultSet rs = stm.executeQuery(query);
+            return rs;
+        } catch (Exception e) {
+            HomeScreen.print_to_console("Incorrect input! due to \n" + e.getMessage());
+        }
+        close_connection();
+        return null;
+    }
+
+    public ResultSet execute_p_this(String query) {
+        open_connection();
+        try {
+            PreparedStatement pstm = connection.prepareStatement(query);
+            ResultSet rs = pstm.executeQuery();
+            return rs;
+        } catch (Exception e) {
+            HomeScreen.print_to_console("Incorrect input! due to \n" + e.getMessage());
+        }
+        close_connection();
+        return null;
+    }
+
+    public int update_this(String query) {
+        open_connection();
+        try {
+            Statement stm = connection.createStatement();
+            return stm.executeUpdate(query);
+        } catch (Exception e) {
+            HomeScreen.print_to_console("Update incomplete! due to \n" + e.getMessage());
+        }
+        close_connection();
+        return -1;
     }
 
     private void open_connection() {

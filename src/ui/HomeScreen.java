@@ -247,30 +247,28 @@ public class HomeScreen {
                         items.add(item);
 
                     } else {
-                        System.out.println("null");
+                        print_to_console("Something weird happened!");
                     }
                 }
-                print_to_console(mgr.insert_into_db(table, items));
-                // update_table_data();
-                // ResultSet trs = mgr.execute_this("SELECT * FROM " + table.getTableName());
-                // htable.getChildren().remove(vtable);
-                // htable.getChildren().add(build_table(trs, table, true));
+                String rmsg = mgr.insert_into_db(table, items);
+                print_to_console(rmsg);
+                if (rmsg.toLowerCase().contains("completed")) {
+                    ResultSet trs = mgr.execute_this("SELECT * FROM " + table.getTableName());
+                    vtable.getItems().clear();
+                    vtable.setItems(get_data_of_table(trs, table, true));
+                }
             });
 
             vtable.prefWidthProperty().bind(scene.widthProperty().divide(1.01));
 
             mid_side.getChildren().clear();
             mid_side.getChildren().addAll(search_bar, attributes_selection, htable);
+
             print_to_console("Table \"" + rs.getMetaData().getTableName(1) + "\" Opened!");
         } catch (Exception e) {
-            e.printStackTrace();
+            print_to_console("Building main table failed due to " + e.getMessage());
         }
     }
-
-    // private void update_table(TableView<ObservableList<Object>> old_table,
-    // TableView<ObservableList<Object>> new_table) {
-    // old_table = new_table;
-    // }
 
     private void show_this_table(ResultSet rs) {
         if (rs == null) {
@@ -305,17 +303,11 @@ public class HomeScreen {
         try {
             TableView<ObservableList<Object>> vtable = new TableView<ObservableList<Object>>();
             vtable.prefHeightProperty().bind(scene.heightProperty().subtract(100).divide(1.01));
-            ObservableList<ObservableList<Object>> data = FXCollections.observableArrayList();
 
             for (int att_i = 1; att_i <= rs.getMetaData().getColumnCount(); att_i++) {
 
                 TableColumn<ObservableList<Object>, Object> att_column = new TableColumn<ObservableList<Object>, Object>(
                         rs.getMetaData().getColumnName(att_i));
-                // att_column.setMaxWidth(300);
-                // if (table.getAttributes().get(att_i - 1).isItPrimaryKey()) {
-                // att_column.setStyle("-fx-underline: true;");
-                // }
-
                 final int j = att_i;
                 att_column.setCellValueFactory(
                         new Callback<CellDataFeatures<ObservableList<Object>, Object>, ObservableValue<Object>>() {
@@ -326,7 +318,22 @@ public class HomeScreen {
                         });
                 vtable.getColumns().add(att_column);
             }
+            ObservableList<ObservableList<Object>> data = get_data_of_table(rs, table, allow_insertion);
+            vtable.setItems(data);
+            return vtable;
+        } catch (Exception e) {
+            print_to_console("building table failed due to " + e.getMessage());
+        }
+        return null;
+    }
+
+    private ObservableList<ObservableList<Object>> get_data_of_table(ResultSet rs, Schema table,
+            boolean allow_insertion) {
+        try {
+
             ObservableList<Object> insertion_inputs = FXCollections.observableArrayList();
+            ObservableList<ObservableList<Object>> data = FXCollections.observableArrayList();
+
             while (rs.next()) {
                 ObservableList<Object> row = FXCollections.observableArrayList();
                 if (allow_insertion) {
@@ -368,20 +375,17 @@ public class HomeScreen {
                     }
                     allow_insertion = false;
                     data.add(insertion_inputs);
-                    vtable.getItems().add(insertion_inputs);
                 }
                 for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
                     row.add(rs.getString(i));
                 }
                 data.add(row);
-                vtable.getItems().add(row);
             }
-            vtable.setItems(data);
-            return vtable;
+            return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            print_to_console("Retrieving data faild! due to " + e.getMessage());
+            return null;
         }
-        return null;
     }
 
     private VBox build_search_item(HBox search_items, ArrayList<Attribute> attributes) {
@@ -461,13 +465,10 @@ public class HomeScreen {
         left_side.getChildren().addAll(tablesGroup);
     }
 
-    public static void print_to_console(String msg) {// , Color color
-        // console.setStyle(
-        // "-fx-text-fill: rgb(" + (int) (color.getRed() * 255) + ", " + (int)
-        // (color.getGreen() * 255) + ", "
-        // + (int) (color.getBlue() * 255) + ");");
-
+    public static void print_to_console(String msg) {
         console.appendText(msg + "\n");
+        console.appendText("--------------------------------\n");
+
     }
 
     private Schema find_table(String table_name) {
