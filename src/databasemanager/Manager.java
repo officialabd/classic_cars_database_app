@@ -11,6 +11,10 @@ import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.CheckBox;
+import parser.Query;
+import parser.QueryParser;
+import schema.Database;
+import schema.Relation;
 import schema.Schema;
 import schema.attribute.Attribute;
 import ui.HomeScreen;
@@ -18,10 +22,12 @@ import ui.HomeScreen;
 public class Manager {
 
     private final String DB_URL;
+    private final String DB_NAME;
     private final String USERNAME;
     private final String PASSWORD;
     private Connection connection;
-    private ArrayList<Schema> tables_schemas;
+    private Database db;
+    private QueryParser qp;
     private String last_query = "";
 
     private final String[] STRINGS_TYPES = { "CHAR", "VARCHAR", "TEXT" };
@@ -29,17 +35,20 @@ public class Manager {
     private final String[] DATE_TYPES = { "DATE", "DATETIME" };
     private final String[] OPERATORS = { "<", ">", ">=", "<=", "!=" };
 
-    public Manager(String db_url, String username, String password) {
+    public Manager(String db_url, String db_name, String username, String password) {
         this.DB_URL = db_url;
         this.USERNAME = username;
         this.PASSWORD = password;
+        this.DB_NAME = db_name;
+        db = new Database(db_name, password);
         open_connection();
         init();
         close_connection();
+        qp = new QueryParser("special_queries");
     }
 
     private void init() {
-        tables_schemas = new ArrayList<Schema>();
+
         try {
             Statement stm = connection.createStatement();
             Statement stm2 = connection.createStatement();
@@ -47,7 +56,6 @@ public class Manager {
 
             ResultSet tables_names = stm.executeQuery("show tables");
             ResultSet tables_attributes;
-            ResultSet relations_rs;
 
             String table_name, att_name, att_type, att_key;
             boolean primary = false, foreign = false, att_required = false;
@@ -55,30 +63,10 @@ public class Manager {
             while (tables_names.next()) {
                 table_name = tables_names.getString(1);
                 Schema table = new Schema(table_name);
-                tables_schemas.add(table);
-
+                db.add_table(table);
             }
 
-            relations_rs = stm3.executeQuery("SELECT " +
-                    "TABLE_NAME, " +
-                    "COLUMN_NAME, " +
-                    "CONSTRAINT_NAME, " +
-                    "REFERENCED_TABLE_NAME, " +
-                    "REFERENCED_COLUMN_NAME " +
-                    "FROM " +
-                    "INFORMATION_SCHEMA.KEY_COLUMN_USAGE " +
-                    " WHERE " +
-                    " REFERENCED_TABLE_SCHEMA = 'abd_al-muttalib_201904158'");
-            ArrayList<String[]> relations = new ArrayList<String[]>();
-            while (relations_rs.next()) {
-                String[] relation = new String[5];
-                for (int i = 1, j = 0; i <= relations_rs.getMetaData().getColumnCount(); i++) {
-                    relation[j++] = relations_rs.getString(i);
-                }
-                relations.add(relation);
-            }
-
-            for (Schema table : tables_schemas) {
+            for (Schema table : db.getTables()) {
                 table_name = table.getTableName();
                 tables_attributes = stm2.executeQuery("desc " + table_name);
                 while (tables_attributes.next()) {
@@ -88,8 +76,10 @@ public class Manager {
 
                     att_name = tables_attributes.getString(1);
                     att_type = tables_attributes.getString(2);
+
                     if (tables_attributes.getString(3).equals("NO"))
                         att_required = true;
+
                     att_key = tables_attributes.getString(4);
 
                     if (att_key.equals("PRI")) {
@@ -98,25 +88,34 @@ public class Manager {
                     if (att_key.equals("MUL")) {
                         foreign = true;
                     }
-                    Schema reference_fk_table = null;
-                    for (String[] relation : relations) {
 
-                        if (relation[0].equals(table_name) && relation[1].equals(att_name))
-                            for (int i = 0; i < tables_schemas.size(); i++) {
+                    Attribute att = new Attribute(att_name, primary, foreign, att_required, att_type);
 
-                                if (relation[3].equals(tables_schemas.get(i).getTableName())) {
-                                    reference_fk_table = tables_schemas.get(i);
-                                    break;
-                                }
-                            }
-                        if (reference_fk_table != null)
-                            break;
-                    }
-                    Attribute att = new Attribute(att_name, primary, foreign, att_required, reference_fk_table,
-                            att_type);
                     table.addAttribute(att);
                 }
 
+            }
+
+            ResultSet relations_rs = stm3.executeQuery("SELECT " +
+                    "TABLE_NAME, " +
+                    "COLUMN_NAME, " +
+                    "CONSTRAINT_NAME, " +
+                    "REFERENCED_TABLE_NAME, " +
+                    "REFERENCED_COLUMN_NAME " +
+                    "FROM " +
+                    "INFORMATION_SCHEMA.KEY_COLUMN_USAGE " +
+                    " WHERE " +
+                    " REFERENCED_TABLE_SCHEMA = '" + db.getNAME() + "'"); // abd_al-muttalib_201904158
+
+            while (relations_rs.next()) {
+                Schema reference_table = db.find_table(relations_rs.getString(1));
+                Attribute reference_att = reference_table.find_attribute(relations_rs.getString(2));
+                String id = relations_rs.getString(3);
+                Schema referenced_table = db.find_table(relations_rs.getString(4));
+                Attribute referenced_att = referenced_table.find_attribute(relations_rs.getString(5));
+
+                Relation relation = new Relation(reference_att, reference_table, referenced_att, referenced_table, id);
+                db.add_relation(relation);
             }
 
         } catch (Exception e) {
@@ -348,7 +347,7 @@ public class Manager {
     private void open_connection() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            connection = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
+            connection = DriverManager.getConnection(DB_URL + DB_NAME, USERNAME, PASSWORD);
         } catch (Exception e) {
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Error!");
@@ -372,15 +371,20 @@ public class Manager {
         }
     }
 
-    public String getLast_query() {
+    public String get_last_query() {
         return last_query;
     }
 
-    public void setLast_query(String last_query) {
+    public ArrayList<Query> get_special_queries() {
+        return qp.getQueries();
+    }
+
+    public void set_last_query(String last_query) {
         this.last_query = last_query;
     }
 
-    public ArrayList<Schema> get_tables() {
-        return tables_schemas;
+    public Database getDb() {
+        return db;
     }
+
 }

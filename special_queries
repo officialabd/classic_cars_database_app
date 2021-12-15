@@ -1,0 +1,61 @@
+>BOQ ~s~ 0 ~s~ Show products that had been ordered by customers from certain city or certain country
+SELECT customers.*, products.* 
+FROM products
+JOIN orderdetails ON products.productCode = orderdetails.productCode
+JOIN orders ON orderdetails.orderNumber = orders.orderNumber
+JOIN customers ON orders.customerNumber = customers.customerNumber
+WHERE customers.city = '-$$-' OR customers.country = '-$$-';
+EOQ<
+>BOQ ~s~ 1 ~s~ Show products details that its price is more than particular price.
+SELECT * FROM products WHERE products.buyPrice > -$1$-;
+EOQ<
+>BOQ ~s~ 2 ~s~ Show number of customers who their credit limits within a given range
+SELECT COUNT(customers.customerNumber) 
+FROM customers 
+WHERE customers.creditLimit >= -$1$- AND customers.creditLimit <= -$2$-;
+EOQ<
+>BOQ ~s~ 3 ~s~ Show customers names and products names they had ordered
+SELECT customers.customerName, products.productName
+FROM products
+JOIN orderdetails ON products.productCode = orderdetails.productCode
+JOIN orders ON orderdetails.orderNumber = orders.orderNumber
+JOIN customers ON orders.customerNumber = customers.customerNumber; 
+EOQ<
+>BOQ ~s~ 4 ~s~ Products that they have in the description some one or more keywords
+SELECT * FROM products WHERE products.productDescription REGEXP '-$1...$-';
+EOQ<
+>BOQ ~s~ 5 ~s~ Show employees names and the orders they facilitated.
+SELECT employees.firstName, employees.lastName, orders.*
+FROM employees
+JOIN customers ON employees.employeeNumber = customers.salesRepEmployeeNumber
+JOIN orders ON customers.customerNumber = orders.customerNumber;
+EOQ<
+>BOQ ~s~ 6 ~s~ Show employees names and total prices of products they sold
+SELECT employees.firstName, employees.lastName, SUM(payments.amount) AS totalPrices
+FROM employees
+JOIN customers ON employees.employeeNumber = customers.salesRepEmployeeNumber
+JOIN payments ON customers.customerNumber = payments.customerNumber
+GROUP BY employees.employeeNumber;
+EOQ<
+>BOQ ~s~ 7 ~s~ Show offices names and amount of money earned through their sales representatives
+SELECT offices.officeCode, SUM(payments.amount) AS totalPrices
+FROM offices
+JOIN employees ON offices.officeCode = employees.officeCode
+JOIN customers ON employees.employeeNumber = customers.salesRepEmployeeNumber
+JOIN payments ON customers.customerNumber = payments.customerNumber
+GROUP BY offices.officeCode;
+EOQ<
+>BOQ ~s~ 8 ~s~ Show employees names who dont have sell any product
+SELECT employees.firstName, employees.lastName 
+FROM employees 
+WHERE employees.employeeNumber 
+NOT IN (SELECT DISTINCT customers.salesRepEmployeeNumber FROM employees, customers WHERE employees.employeeNumber = customers.salesRepEmployeeNumber);
+EOQ<
+>BOQ ~s~ 9 ~s~ Show employees names who sold at least one product
+SELECT DISTINCT employees.firstName, employees.lastName 
+FROM products
+JOIN orderdetails ON products.productCode = orderdetails.productCode
+JOIN orders ON orderdetails.orderNumber = orders.orderNumber
+JOIN customers ON orders.customerNumber = customers.customerNumber
+JOIN employees ON customers.salesRepEmployeeNumber = employees.employeeNumber;
+EOQ<

@@ -26,6 +26,14 @@ public class Schema {
         return attributes;
     }
 
+    public Attribute find_attribute(String name) {
+        for (Attribute attribute : attributes) {
+            if (attribute.getName().equalsIgnoreCase(name))
+                return attribute;
+        }
+        return null;
+    }
+
     public void addAttribute(Attribute attribute) {
         ATTRIBUTE_NUMBER++;
         this.attributes.add(attribute);
@@ -49,16 +57,11 @@ public class Schema {
         return ATTRIBUTE_NUMBER;
     }
 
-    // @Override
-    // public String toString() {
-    // return "Schema [attributes=" + attributes + ", foreignKeys=" + foreignKeys +
-    // ", primaryKeys=" + primaryKeys
-    // + ", tableName=" + tableName + "]";
-    // }
-
     @Override
     public String toString() {
-        return getTableName();
+        return "Schema [attributes=" + attributes + ", foreignKeys=" + foreignKeys +
+                ", primaryKeys=" + primaryKeys
+                + ", tableName=" + tableName + "]\n";
     }
 
 }
