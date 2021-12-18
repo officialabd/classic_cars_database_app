@@ -26,6 +26,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
@@ -52,20 +54,18 @@ public class HomeScreen {
     private final double WIDTH, HEIGHT;
     private final String TITLE;
     private final boolean MAXIMIZED_SCREEN;
+    public static final boolean FULL_SCREEN = true;
+    public static final boolean MINI_SCREEN = false;
     private Manager mgr;
-    private ArrayList<Schema> tables;
     private Database db;
+    private ArrayList<Schema> tables;
     private Stage stg;
     private Scene scene;
     private Pane root;
     private static TextArea console;
-    private VBox mid_side;
-    private VBox left_side;
+    private VBox mid_side, left_side, previuos_state;
     private HBox content;
-    private VBox previuos_state;
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    public static final boolean FULL_SCREEN = true;
-    public static final boolean MINI_SCREEN = false;
 
     public HomeScreen(Stage stg, String TITLE, Manager mgr) {
         this(stg, TITLE, Screen.getPrimary().getBounds().getWidth() / 2,
@@ -106,20 +106,51 @@ public class HomeScreen {
         root.getChildren().addAll(new VBox(build_navigation_bar(), build_content()));
     }
 
-    private Node build_content() {
-        content = new HBox(buildLeft(), build_middle());
-        return content;
-    }
-
     private Node build_navigation_bar() {
-        Menu edit = new Menu("Edit");
-
         Menu special_queries = new Menu("Special Queries");
         special_queries.getItems().addAll(build_special_queries_menu());
+        MenuItem mi = new MenuItem("About");
+        Dialog<Void> dig = show_about();
+        mi.setOnAction(e -> {
+            dig.show();
+        });
+        Menu help = new Menu("Help");
+        help.getItems().add(mi);
+        MenuBar mb = new MenuBar(special_queries, help);
 
-        MenuBar mb = new MenuBar(edit, special_queries);
         mb.prefWidthProperty().bind(scene.widthProperty());
         return mb;
+    }
+
+    private Dialog<Void> show_about() {
+        Tab t1 = new Tab("About us");
+        Label l1 = new Label(
+                "Done By Abd Al-Muttalib Ibreighith\n"
+                        + "I'm currently studying software engineering at Bethlehem Univeristy\n"
+                        + "My University Id is 201904158.");
+        l1.setMaxWidth(400);
+        l1.setWrapText(true);
+        l1.setPadding(new Insets(10, 10, 10, 10));
+        t1.setContent(l1);
+        t1.setClosable(false);
+
+        Tab t2 = new Tab("About Database");
+        Label l2 = new Label(
+                "A database that manages the work of a retailer for classic cars. \n"
+                        + "It contains typical business data such as customers, products, \n"
+                        + "sales orders, sales order line items.");
+        l2.setMaxWidth(400);
+        l2.setWrapText(true);
+        l2.setPadding(new Insets(10, 10, 10, 10));
+        t2.setContent(l2);
+        t2.setClosable(false);
+
+        TabPane tp = new TabPane(t1, t2);
+        Dialog<Void> dialog = new Dialog<Void>();
+        dialog.getDialogPane().setContent(tp);
+        dialog.setTitle("About");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL);
+        return dialog;
     }
 
     private ObservableList<MenuItem> build_special_queries_menu() {
@@ -197,16 +228,43 @@ public class HomeScreen {
         tid.show();
     }
 
-    private Node buildLeft() {
+    private Node build_content() {
+        content = new HBox(build_left_nav(), build_tables_content());
+        return content;
+    }
+
+    private Node build_left_nav() {
         left_side = new VBox(10);
         left_side.setPadding(new Insets(10.0));
         left_side.prefHeightProperty().bind(scene.heightProperty().divide(1.01));
         left_side.prefWidthProperty().bind(scene.widthProperty().divide(5));
-        left_side.getChildren().addAll(build_all_tables_menu(), buildConsole());
+        left_side.getChildren().addAll(build_all_tables_menu(), build_console());
         return left_side;
     }
 
-    private Node buildConsole() {
+    private Node build_all_tables_menu() {
+        ListView<String> vtables = new ListView<String>();
+        for (int i = 0; i < tables.size(); i++) {
+            vtables.getItems().add(tables.get(i).getTableName());
+        }
+
+        Label tableTitle = new Label("Tables");
+        tableTitle.setStyle("-fx-font: bold 12pt 'Arial'");
+
+        VBox tablesGroup = new VBox(10, tableTitle, vtables);
+        tablesGroup.prefHeightProperty().bind(left_side.heightProperty().divide(2));
+        tablesGroup.setAlignment(Pos.CENTER);
+
+        vtables.getSelectionModel().selectedItemProperty().addListener(e -> {
+            String table_name = vtables.getSelectionModel().getSelectedItem();
+            mid_side.getChildren().clear();
+            mid_side.getChildren().add(build_main_table(db.find_table(table_name)));
+        });
+
+        return tablesGroup;
+    }
+
+    private Node build_console() {
         Label console_title = new Label("Console");
         console_title.setStyle("-fx-font: bold 12pt 'Arial'");
 
@@ -222,7 +280,7 @@ public class HomeScreen {
         return vb;
     }
 
-    private Node build_middle() {
+    private Node build_tables_content() {
         mid_side = new VBox(10);
         mid_side.setPadding(new Insets(10.0));
         mid_side.prefWidthProperty()
@@ -561,28 +619,6 @@ public class HomeScreen {
                 prev_key = pstr.getKey();
             }
         show_this_table(mgr.execute_this(q.build_query()), q.build_query());
-    }
-
-    private Node build_all_tables_menu() {
-        ListView<String> vtables = new ListView<String>();
-        for (int i = 0; i < tables.size(); i++) {
-            vtables.getItems().add(tables.get(i).getTableName());
-        }
-
-        Label tableTitle = new Label("Tables");
-        tableTitle.setStyle("-fx-font: bold 12pt 'Arial'");
-
-        VBox tablesGroup = new VBox(10, tableTitle, vtables);
-        tablesGroup.prefHeightProperty().bind(left_side.heightProperty().divide(2));
-        tablesGroup.setAlignment(Pos.CENTER);
-
-        vtables.getSelectionModel().selectedItemProperty().addListener(e -> {
-            String table_name = vtables.getSelectionModel().getSelectedItem();
-            mid_side.getChildren().clear();
-            mid_side.getChildren().add(build_main_table(db.find_table(table_name)));
-        });
-
-        return tablesGroup;
     }
 
     public static void print_to_console(String msg) {
