@@ -504,6 +504,7 @@ public class HomeScreen {
                     for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
                         if (table.getAttributes().get(i).isItForeignKey()) {
                             ComboBox<Object> cb = new ComboBox<Object>();
+                            cb.setMaxWidth(150);
                             cb.setId(table.getAttributes().get(i).getName());
                             cb.setEditable(true);
 
@@ -514,7 +515,17 @@ public class HomeScreen {
                                             + ref_table.getReference_schema().getTableName());
 
                             while (trs.next()) {
-                                cb.getItems().add(trs.getString(ref_table.getReference_att().getName()));
+                                String tempo = "";
+                                for (int j = 1; j <= trs.getMetaData().getColumnCount(); j++) {
+                                    if (j > 1)
+                                        tempo += ", ";
+                                    tempo += trs.getString(j);
+
+                                }
+                                NewLabel nl = new NewLabel(tempo,
+                                        trs.getString(ref_table.getReference_att().getName()));
+                                nl.setWrapText(true);
+                                cb.getItems().add(nl);
                             }
                             insertion_inputs.add(cb);
                         } else if (table.getAttributes().get(i).isItPrimaryKey()
